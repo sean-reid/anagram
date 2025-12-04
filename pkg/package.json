@@ -1,0 +1,15 @@
+{
+  "name": "anagram-solver",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "anagram_solver_bg.wasm",
+    "anagram_solver.js",
+    "anagram_solver.d.ts"
+  ],
+  "main": "anagram_solver.js",
+  "types": "anagram_solver.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
