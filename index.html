@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anagram Solver</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #111;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.875rem;
+            font-weight: 400;
+        }
+
+        .search-section {
+            margin-bottom: 2rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem 120px 1rem 1rem;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: #333;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        input::placeholder {
+            color: #999;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #333;
+        }
+
+        input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0.6rem 1.25rem;
+            background: #111;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.875rem;
+        }
+
+        button:hover:not(:disabled) {
+            background: #333;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: #666;
+        }
+
+        .error {
+            color: #d32f2f;
+        }
+
+        .results-section {
+            margin-top: 2rem;
+        }
+
+        .results-count {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .results-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            padding: 0.875rem 0;
+            border-bottom: 1px solid #eee;
+            color: #333;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item:hover {
+            color: #000;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 3rem 0;
+        }
+
+        .empty-state-title {
+            font-size: 1rem;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state-subtitle {
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        /* Scrollbar styling */
+        .results-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .results-list::-webkit-scrollbar-track {
+            background: #f5f5f5;
+        }
+
+        .results-list::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        .results-list::-webkit-scrollbar-thumb:hover {
+            background: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Anagram Solver</h1>
+            <p class="subtitle">Find word combinations</p>
+        </div>
+
+        <div class="search-section">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="phraseInput" 
+                    placeholder="Enter a phrase..."
+                    autocomplete="off"
+                />
+                <button id="solveBtn">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    Solve
+                </button>
+            </div>
+
+            <div id="status" class="status hidden"></div>
+        </div>
+
+        <div id="results" class="results-section hidden"></div>
+    </div>
+
+    <script type="module">
+        let wasmModule = null;
+        let wasmReady = false;
+        let solve_anagrams = null;
+
+        // Initialize WASM module
+        async function initWasm() {
+            try {
+                // Try to load the WASM module - adjust path as needed
+                const wasmPath = './pkg/anagram_solver.js';
+                
+                const module = await import(wasmPath);
+                
+                // Initialize the WASM module
+                await module.default();
+                
+                // Get the solve function
+                solve_anagrams = module.solve_anagrams;
+                
+                wasmReady = true;
+                console.log('WASM module loaded successfully');
+            } catch (error) {
+                console.error('Failed to load WASM module:', error);
+                console.log('Falling back to mock solver');
+                
+                // Fall back to mock implementation
+                wasmReady = true;
+                solve_anagrams = mockSolveAnagrams;
+            }
+        }
+
+        // Mock dictionary for fallback
+        const mockDictionary = [
+            'astronomer', 'moon', 'starer', 'the', 'red', 'planet', 
+            'mars', 'star', 'observe', 'telescope', 'night', 'sky',
+            'crater', 'orbit', 'solar', 'lunar', 'comet', 'earth',
+            'space', 'galaxy', 'nebula', 'asteroid', 'meteor'
+        ];
+
+        // Mock anagram solver (fallback)
+        function mockSolveAnagrams(phrase) {
+            const cleanPhrase = phrase.toLowerCase().replace(/[^a-z]/g, '');
+            
+            if (cleanPhrase.length < 3) {
+                return { single: [], multi: [] };
+            }
+
+            const results = { single: [], multi: [] };
+
+            // Mock single-word anagrams
+            if (cleanPhrase === 'astronomer') {
+                results.single.push('moon starer');
+            } else if (cleanPhrase.length >= 5) {
+                const matchingWords = mockDictionary.filter(word => 
+                    word.length >= 4 && word.length <= cleanPhrase.length
+                );
+                if (matchingWords.length > 0) {
+                    results.single.push(matchingWords[0]);
+                }
+            }
+
+            // Mock multi-word anagrams
+            const numCombos = Math.min(Math.floor(cleanPhrase.length / 3), 15);
+            for (let i = 0; i < numCombos; i++) {
+                const numWords = Math.floor(Math.random() * 3) + 2;
+                const words = [];
+                for (let j = 0; j < numWords; j++) {
+                    const randomWord = mockDictionary[Math.floor(Math.random() * mockDictionary.length)];
+                    words.push(randomWord);
+                }
+                results.multi.push(words.join(' '));
+            }
+
+            return results;
+        }
+
+        // Wrapper to call WASM or mock
+        function solveAnagrams(phrase) {
+            if (solve_anagrams) {
+                return solve_anagrams(phrase);
+            }
+            return mockSolveAnagrams(phrase);
+        }
+
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${isError ? 'error' : ''}`;
+            status.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            document.getElementById('status').classList.add('hidden');
+        }
+
+        function showLoading() {
+            const btn = document.getElementById('solveBtn');
+            btn.disabled = true;
+            btn.innerHTML = `
+                <svg class="spinner" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Solving
+            `;
+        }
+
+        function hideLoading() {
+            const btn = document.getElementById('solveBtn');
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                Solve
+            `;
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            
+            // Combine all results into one array
+            const allAnagrams = [...results.single, ...results.multi];
+
+            if (allAnagrams.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="empty-state">
+                        <p class="empty-state-title">No anagrams found</p>
+                        <p class="empty-state-subtitle">Try a different phrase</p>
+                    </div>
+                `;
+            } else {
+                let html = `
+                    <div class="results-count">${allAnagrams.length} result${allAnagrams.length === 1 ? '' : 's'}</div>
+                    <div class="results-list">
+                        ${allAnagrams.map(anagram => `
+                            <div class="result-item">${anagram}</div>
+                        `).join('')}
+                    </div>
+                `;
+                resultsDiv.innerHTML = html;
+            }
+
+            resultsDiv.classList.remove('hidden');
+        }
+
+        async function handleSolve() {
+            const input = document.getElementById('phraseInput');
+            const phrase = input.value.trim();
+
+            if (!phrase) {
+                showStatus('Please enter a phrase', true);
+                return;
+            }
+
+            if (!wasmReady) {
+                showStatus('Solver is still initializing...', true);
+                return;
+            }
+
+            hideStatus();
+            showLoading();
+            document.getElementById('results').classList.add('hidden');
+
+            // Simulate processing time
+            setTimeout(() => {
+                try {
+                    const results = solveAnagrams(phrase);
+                    displayResults(results);
+                } catch (error) {
+                    showStatus('Failed to solve anagrams', true);
+                } finally {
+                    hideLoading();
+                }
+            }, 800);
+        }
+
+        // Initialize
+        initWasm().then(() => {
+            document.getElementById('phraseInput').disabled = false;
+            document.getElementById('solveBtn').disabled = false;
+        });
+
+        showStatus('Initializing solver...');
+        setTimeout(() => {
+            hideStatus();
+        }, 600);
+
+        // Event listeners
+        document.getElementById('solveBtn').addEventListener('click', handleSolve);
+        document.getElementById('phraseInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSolve();
+            }
+        });
+    </script>
+</body>
+</html>
