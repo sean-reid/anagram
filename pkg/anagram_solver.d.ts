@@ -3,14 +3,18 @@
 
 export function solve_anagrams(target: string): any;
 
+export function test_logging(): void;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly solve_anagrams: (a: number, b: number) => any;
+  readonly solve_anagrams: (a: number, b: number) => [number, number, number];
+  readonly test_logging: () => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_externrefs: WebAssembly.Table;
+  readonly __externref_table_dealloc: (a: number) => void;
   readonly __wbindgen_start: () => void;
 }
 

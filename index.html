@@ -248,60 +248,9 @@
                 solve_anagrams = module.solve_anagrams;
                 
                 wasmReady = true;
-                console.log('WASM module loaded successfully');
             } catch (error) {
                 console.error('Failed to load WASM module:', error);
-                console.log('Falling back to mock solver');
-                
-                // Fall back to mock implementation
-                wasmReady = true;
-                solve_anagrams = mockSolveAnagrams;
             }
-        }
-
-        // Mock dictionary for fallback
-        const mockDictionary = [
-            'astronomer', 'moon', 'starer', 'the', 'red', 'planet', 
-            'mars', 'star', 'observe', 'telescope', 'night', 'sky',
-            'crater', 'orbit', 'solar', 'lunar', 'comet', 'earth',
-            'space', 'galaxy', 'nebula', 'asteroid', 'meteor'
-        ];
-
-        // Mock anagram solver (fallback)
-        function mockSolveAnagrams(phrase) {
-            const cleanPhrase = phrase.toLowerCase().replace(/[^a-z]/g, '');
-            
-            if (cleanPhrase.length < 3) {
-                return { single: [], multi: [] };
-            }
-
-            const results = { single: [], multi: [] };
-
-            // Mock single-word anagrams
-            if (cleanPhrase === 'astronomer') {
-                results.single.push('moon starer');
-            } else if (cleanPhrase.length >= 5) {
-                const matchingWords = mockDictionary.filter(word => 
-                    word.length >= 4 && word.length <= cleanPhrase.length
-                );
-                if (matchingWords.length > 0) {
-                    results.single.push(matchingWords[0]);
-                }
-            }
-
-            // Mock multi-word anagrams
-            const numCombos = Math.min(Math.floor(cleanPhrase.length / 3), 15);
-            for (let i = 0; i < numCombos; i++) {
-                const numWords = Math.floor(Math.random() * 3) + 2;
-                const words = [];
-                for (let j = 0; j < numWords; j++) {
-                    const randomWord = mockDictionary[Math.floor(Math.random() * mockDictionary.length)];
-                    words.push(randomWord);
-                }
-                results.multi.push(words.join(' '));
-            }
-
-            return results;
         }
 
         // Wrapper to call WASM or mock
@@ -309,7 +258,6 @@
             if (solve_anagrams) {
                 return solve_anagrams(phrase);
             }
-            return mockSolveAnagrams(phrase);
         }
 
         function showStatus(message, isError = false) {
@@ -345,11 +293,10 @@
             `;
         }
 
-        function displayResults(results) {
+        function displayResults(data) {
             const resultsDiv = document.getElementById('results');
             
-            // Combine all results into one array
-            const allAnagrams = [...results.single, ...results.multi];
+            const allAnagrams = data.results || [];
 
             if (allAnagrams.length === 0) {
                 resultsDiv.innerHTML = `
