@@ -30,7 +30,7 @@ A high-performance web application that finds word combinations (anagrams) for a
 ### Prerequisites
 
 * [Rust](https://www.rust-lang.org/) and `cargo`
-* [`wasm-pack`](https://rustwasm.github.io/wasm-pack/installer) for building the WASM module
+* [`wasm-pack`](https://drager.github.io/wasm-pack/) for building the WASM module
 
 ### Building the Project
 
